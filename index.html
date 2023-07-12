@@ -1,0 +1,257 @@
+<!doctype html>
+<html class="no-js" lang="">
+
+<head>
+  <meta charset="utf-8">
+  <title></title>
+  <meta name="description" content="">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <meta property="og:title" content="">
+  <meta property="og:type" content="">
+  <meta property="og:url" content="">
+  <meta property="og:image" content="">
+
+  <link rel="manifest" href="site.webmanifest">
+  <link rel="apple-touch-icon" href="icon.png">
+  <!-- Place favicon.ico in the root directory -->
+
+  <link rel="stylesheet" href="css/normalize.css">
+  <link rel="stylesheet" href="css/main.scss">
+
+  <meta name="theme-color" content="#fafafa">
+  <meta charset="UTF-8">
+  <title>Canvas Image Classification using DoodleNet and p5.js</title>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/0.9.0/p5.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/0.9.0/addons/p5.dom.min.js"></script>
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>
+
+  <script src="https://unpkg.com/ml5@latest/dist/ml5.min.js" type="text/javascript"></script>
+  <script src="js/vendor/modernizr-3.11.2.min.js"></script>
+  <script type="text/javascript"  src="js/plugins.js"></script>
+  <script type="text/javascript"  src="js/main.js"></script>
+  <style></style>
+</head>
+
+<body class="d-flex flex-column align-items-center w-100">
+
+
+<!-- Add your site or application content here -->
+<h1>DrawIt!</h1>
+<div class="d-flex flex-row w-75 justify-content-between">
+  <div class="instructions-wrapper border-1">
+    <!-- instructions go here -->
+    <div class="instructions mb-4">
+      <h2>Instructions</h2>
+      Say "Yes" to start drawing.
+      <br>
+      Say "Go" to start line. Say "Stop" to stop line.
+      <br>
+      Say "Yes" again to submit.
+    </div>
+    <div class="word-gen mb-4">
+      <div><strong>You don't have a prompt yet.</strong></div>
+      <button class="btn btn-primary" id="word-gen">Generate prompt</button>
+    </div>
+    <div class="d-inline">
+      Your prompt is: <h3 id="prompt"></h3>
+    </div>
+
+  </div>
+  <div class="flex-column justify-content-center">
+    <!-- Canvas goes here -->
+    <div id="canvas" class="border border-primary"></div>
+    <div id="ml5-label">Label: </div>
+    <div id="ml5-confidence">Confidence: </div>
+    <div>
+      <button id="clear-btn" class="btn btn-primary" onclick="clearCanvas()">Clear Canvas</button>
+    </div>
+    <div>
+      <button id="start-btn" class="btn btn-primary">Start Drawing</button>
+    </div>
+    <div>
+      <button id="stop-btn" class="btn btn-primary">Stop Drawing</button>
+    </div>
+
+  </div>
+  <div class="camera-wrapper border border-danger">
+    <!-- camera goes here -->
+    <div class="webcam" id="webcam"></div>
+  </div>
+</div>
+
+<script>
+  let handpose;
+  let predictions = [];
+  let curHandPose;
+  let fingerCursor;
+  let video;
+  let canvas;
+  let canvas2;
+  let isDrawing = false;
+  let FRAMERATE = 60;
+
+  let label;
+  let confidence;
+
+  // apparently you have to at least instantiate this method to be able to use the individual canvases at all
+  function setup() {
+
+  }
+
+  function clearCanvas() {
+    canvas.background(255);
+  }
+
+  // ART CANVAS
+  let s1 = function( sketch ) {
+    sketch.preload = function() {
+      // Load the DoodleNet Image Classification model
+      classifier = ml5.imageClassifier('DoodleNet');
+    }
+
+    sketch.setup = function() {
+      canvas = createCanvas(640,480);
+      canvas.parent('canvas');
+      // Set canvas background to white
+      background(255);
+      sketch.frameRate(FRAMERATE);
+      // Whenever mouseReleased event happens on canvas, call "classifyCanvas" function
+      // Create a clear canvas button
+    }
+
+    sketch.draw = function() {
+      // Set stroke weight to 10
+      canvas.strokeWeight(15);
+      // Set stroke color to black
+      canvas.stroke(0);
+      // show "cursor" while hand is detected
+      if (curHandPose) {
+        fingerCursor = curHandPose.annotations.indexFinger;
+        // if user starts drawing
+        if (isDrawing) {
+          if (curHandPose.annotations.indexFinger) {
+            canvas.point(fingerCursor[0][0], fingerCursor[0][1]);
+          }
+        } else {
+
+        }
+      }
+    }
+
+    document.getElementById('start-btn').addEventListener('click', () => {
+      startDraw()
+    })
+
+    document.getElementById('stop-btn').addEventListener('click', () => {
+      stopDraw()
+    })
+
+
+    function startDraw() {
+      isDrawing = true;
+
+    }
+
+    function stopDraw() {
+      isDrawing = false;
+      classifyCanvas();
+    }
+
+
+    function classifyCanvas() {
+      classifier.classify(canvas, gotResult);
+    }
+
+    // A function to run when we get any errors and the results
+    function gotResult(error, results) {
+      // Display error in the console
+      if (error) {
+        console.error(error);
+      }
+      // The results are in an array ordered by confidence.
+      console.log(results);
+      // Show the first label and confidence
+
+      label = document.getElementById('ml5-label');
+      confidence = document.getElementById('ml5-confidence');
+
+      label.innerHTML = 'Label: ' + results[0].label;
+      confidence.innerHTML = 'Confidence: ' + nf(results[0].confidence, 0, 2); // Round the confidence to 0.01
+    }
+  };
+
+  // create a new instance of p5 and pass in the function for sketch 1
+  new p5(s1);
+
+  // VIDEO
+  let s2 = function( sketch ) {
+
+    const options = {
+      flipHorizontal: true, // boolean value for if the video should be flipped, defaults to false
+      maxContinuousChecks: 3, // How many frames to go without running the bounding box detector. Defaults to infinity, but try a lower value if the detector is consistently producing bad predictions.
+      detectionConfidence: 0.8, // Threshold for discarding a prediction. Defaults to 0.8.
+      scoreThreshold: 0.75, // A threshold for removing multiple (likely duplicate) detections based on a "non-maximum suppression" algorithm. Defaults to 0.75
+      iouThreshold: 0.3, // A float representing the threshold for deciding whether boxes overlap too much in non-maximum suppression. Must be between [0, 1]. Defaults to 0.3.
+    }
+
+    sketch.setup = function() {
+      canvas2 = sketch.createCanvas(640, 480);
+      canvas2.parent('webcam');
+      video = sketch.createCapture(VIDEO);
+      sketch.translate(video.width, 0);
+      //then scale it by -1 in the x-axis
+      //to flip the image
+      sketch.scale(-1, 1);
+
+      handpose = ml5.handpose(video, options, modelReady);
+
+      // This sets up an event that fills the global variable "predictions"
+      // with an array every time new hand poses are detected
+      handpose.on("predict", results => {
+        predictions = results;
+        curHandPose = predictions[0];
+      });
+
+      // Hide the video element, and just show the canvas
+      video.hide();
+
+    }
+    sketch.draw = function() {
+      //flip video
+      sketch.scale(-1, 1);
+      sketch.image(video, -width, 0);
+
+      // Because the x-axis is reversed, we need to draw at different x position.
+
+      // We can call both functions to draw all keypoints and the skeletons
+      drawKeypoints();
+    }
+
+
+    function modelReady() {
+      console.log("Model ready!");
+    }
+
+    // A function to draw ellipses over the detected keypoints
+    function drawKeypoints() {
+      for (let i = 0; i < predictions.length; i += 1) {
+        const prediction = predictions[i];
+        for (let j = 0; j < prediction.landmarks.length; j += 1) {
+          const keypoint = prediction.landmarks[j];
+          sketch.fill(0, 255, 0);
+          sketch.noStroke();
+          sketch.ellipse(keypoint[0], keypoint[1], 10, 10);
+        }
+      }
+    }
+  };
+
+  // create the second instance of p5 and pass in the function for sketch 2
+  new p5(s2);
+</script>
+
+</body>
+
+</html>
