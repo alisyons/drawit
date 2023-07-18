@@ -97,6 +97,10 @@
   let label;
   let confidence;
 
+  //sound
+  const soundOptions = { probabilityThreshold: 0.7 };
+  let soundClassifier;
+
   // apparently you have to at least instantiate this method to be able to use the individual canvases at all
   function setup() {
 
@@ -111,6 +115,7 @@
     sketch.preload = function() {
       // Load the DoodleNet Image Classification model
       classifier = ml5.imageClassifier('DoodleNet');
+      soundClassifier = ml5.soundClassifier('SpeechCommands18w', soundOptions)
     }
 
     sketch.setup = function() {
@@ -119,8 +124,7 @@
       // Set canvas background to white
       background(255);
       sketch.frameRate(FRAMERATE);
-      // Whenever mouseReleased event happens on canvas, call "classifyCanvas" function
-      // Create a clear canvas button
+      soundClassifier.classify(gotSoundResult);
     }
 
     sketch.draw = function() {
@@ -169,6 +173,26 @@
 
     function classifyCanvas() {
       classifier.classify(canvas, gotResult);
+    }
+
+    function gotSoundResult(error, results) {
+      if (error) {
+        console.error(error);
+      }
+      // The results are in an array ordered by confidence.
+      console.log(results);
+      switch (results[0].label) {
+        case 'yes':
+          break;
+        case 'go':
+          startDraw();
+          break;
+        case 'stop':
+          stopDraw();
+          break;
+      }
+
+
     }
 
     // A function to run when we get any errors and the results
