@@ -304,7 +304,7 @@
       // Because the x-axis is reversed, we need to draw at different x position.
 
       // We can call both functions to draw all keypoints and the skeletons
-      drawKeypoints();
+      fillPredicitons();
     }
 
 
@@ -312,16 +312,10 @@
       console.log("Model ready!");
     }
 
-    // A function to draw ellipses over the detected keypoints
-    function drawKeypoints() {
+    // A function to fill the predictions of a hand pose
+    function fillPredicitons() {
       for (let i = 0; i < predictions.length; i += 1) {
         const prediction = predictions[i];
-        for (let j = 0; j < prediction.landmarks.length; j += 1) {
-          const keypoint = prediction.landmarks[j];
-          sketch.fill(0, 255, 0);
-          sketch.noStroke();
-          sketch.ellipse(keypoint[0], keypoint[1], 10, 10);
-        }
       }
     }
   };
