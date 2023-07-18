@@ -55,7 +55,6 @@
     <h3>Your points: <span id="points"></span></h3>
     <div class="word-gen mb-4">
       <div><strong>You don't have a prompt yet.</strong></div>
-      <button class="btn btn-primary" id="word-gen">Generate prompt</button>
     </div>
     <div class="d-inline">
       Your prompt is: <h3 id="prompt"></h3>
@@ -216,9 +215,8 @@
     function handleYesInput() {
       if (prompt === '') {
         generatePrompt();
-      } else if (prompt !== '' && predictions) {
+      } else {
         calculatePoints();
-        prompt = '';
       }
     }
 
@@ -302,9 +300,6 @@
       sketch.image(video, -width, 0);
 
       // Because the x-axis is reversed, we need to draw at different x position.
-
-      // We can call both functions to draw all keypoints and the skeletons
-      fillPredicitons();
     }
 
 
@@ -312,12 +307,6 @@
       console.log("Model ready!");
     }
 
-    // A function to fill the predictions of a hand pose
-    function fillPredicitons() {
-      for (let i = 0; i < predictions.length; i += 1) {
-        const prediction = predictions[i];
-      }
-    }
   };
 
   // create the second instance of p5 and pass in the function for sketch 2
