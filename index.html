@@ -85,7 +85,9 @@
   let handpose;
   let predictions = [];
   let curHandPose;
+  let prevHandPose;
   let fingerCursor;
+  let prevFingerCursor;
   let video;
   let canvas;
   let canvas2;
@@ -132,10 +134,14 @@
         // if user starts drawing
         if (isDrawing) {
           if (curHandPose.annotations.indexFinger) {
-            canvas.point(fingerCursor[0][0], fingerCursor[0][1]);
+            // if previous hand pose exists (aka if anything has been drawn before)
+            if(prevFingerCursor) {
+              canvas.line(fingerCursor[0][0], fingerCursor[0][1], prevFingerCursor[0][0], prevFingerCursor[0][1]);
+            } else {
+              canvas.point(fingerCursor[0][0], fingerCursor[0][1]);
+            }
           }
-        } else {
-
+          prevFingerCursor = fingerCursor;
         }
       }
     }
@@ -156,6 +162,7 @@
 
     function stopDraw() {
       isDrawing = false;
+      prevFingerCursor = null;
       classifyCanvas();
     }
 
